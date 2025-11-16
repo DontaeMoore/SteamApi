@@ -87,3 +87,32 @@
   color: #ff6b6b;
   font-weight: bold;
 }
+
+/* Full-bleed section that breaks out of #root width */
+.section {
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  width: 100vw;
+  background-color:  darkslategray;
+}
+
+/* Optional: make the section fill the viewport height */
+.section--full-height {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  margin-bottom: 40px;
+ 
+}
+
+/* Constrain content inside the full-bleed section */
+.section__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+

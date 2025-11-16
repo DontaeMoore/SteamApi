@@ -43,6 +43,86 @@ app.get('/api/profile', async (req, res) => {
   }
 });
 
+// ---- Deadlock API proxy (kept) ----
+function steam64ToAccountId(steam64) {
+  const base = 76561197960265728n;
+  try {
+    const n = BigInt(steam64);
+    const diff = n - base;
+    if (diff < 0n) return null;
+    return diff.toString();
+  } catch {
+    return null;
+  }
+}
+
+// GET /api/deadlock/hero-stats?account_id=133440116&hero_ids=... (optional extra filters)
+app.get('/api/deadlock/hero-stats', async (req, res) => {
+  try {
+    // Resolve account_id priority: query > DEADLOCK_ACCOUNT_ID > derived from STEAM_ID
+    let accountId = req.query.account_id || process.env.DEADLOCK_ACCOUNT_ID;
+    if (!accountId && process.env.STEAM_ID) {
+      const derived = steam64ToAccountId(process.env.STEAM_ID);
+      if (derived) accountId = derived;
+    }
+    if (!accountId) {
+      return res.status(400).json({ error: 'Missing account_id (query), DEADLOCK_ACCOUNT_ID, or convertible STEAM_ID' });
+    }
+
+    const baseUrl = 'https://api.deadlock-api.com/v1/players/hero-stats';
+    const params = new URLSearchParams();
+    params.set('account_ids', String(accountId));
+
+    // Pass through known optional filters if provided and not literal 'null'
+    const passThrough = ['hero_ids','min_unix_timestamp','max_unix_timestamp','min_duration_s','max_duration_s','min_networth','max_networth','min_average_badge','max_average_badge','min_match_id','max_match_id'];
+    for (const key of passThrough) {
+      const v = req.query[key];
+      if (v !== undefined && v !== null && v !== 'null' && v !== '') {
+        params.set(key, String(v));
+      }
+    }
+
+    const url = `${baseUrl}?${params.toString()}`;
+    const r = await fetch(url);
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); } catch (e) {
+      console.error('Deadlock API non-JSON:', text);
+      return res.status(502).json({ error: 'Deadlock API returned non-JSON', body: text });
+    }
+    if (!r.ok) {
+      console.error('Deadlock API error', r.status, data);
+      return res.status(r.status).json({ error: 'Deadlock API error', status: r.status, body: data });
+    }
+    return res.json(data);
+  } catch (error) {
+    console.error('Error fetching Deadlock hero stats:', error);
+    res.status(500).json({ error: 'Failed to fetch Deadlock hero stats' });
+  }
+});
+
+// GET /api/deadlock/heroes -> proxies Deadlock heroes metadata (id -> name mapping)
+app.get('/api/deadlock/heroes', async (_req, res) => {
+  try {
+    const url = 'https://assets.deadlock-api.com/v2/heroes';
+    const r = await fetch(url);
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); } catch (e) {
+      console.error('Deadlock heroes non-JSON:', text);
+      return res.status(502).json({ error: 'Deadlock heroes returned non-JSON', body: text });
+    }
+    if (!r.ok) {
+      console.error('Deadlock heroes error', r.status, data);
+      return res.status(r.status).json({ error: 'Deadlock heroes error', status: r.status, body: data });
+    }
+    return res.json(data);
+  } catch (error) {
+    console.error('Error fetching Deadlock heroes:', error);
+    res.status(500).json({ error: 'Failed to fetch Deadlock heroes' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
 });
