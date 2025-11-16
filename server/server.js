@@ -17,10 +17,17 @@ app.use(cors({
 // Steam API endpoint
 const STEAM_API_URL = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/';
 
-// Route to get Steam profile
+// Route to get Steam profiles (you + friends)
 app.get('/api/profile', async (req, res) => {
   try {
-    const url = `${STEAM_API_URL}?key=${process.env.STEAM_API_KEY}&steamids=${process.env.STEAM_ID}`;
+    // Combine all Steam IDs (you + your friends)
+    const steamIds = [
+      process.env.STEAM_ID,
+      process.env.FRIEND1_STEAM_ID,
+      process.env.FRIEND2_STEAM_ID
+    ].filter(id => id).join(','); // Filter out undefined IDs and join with commas
+    
+    const url = `${STEAM_API_URL}?key=${process.env.STEAM_API_KEY}&steamids=${steamIds}`;
     const response = await fetch(url);
     const data = await response.json();
     
@@ -28,10 +35,11 @@ app.get('/api/profile', async (req, res) => {
       throw new Error('Steam API request failed');
     }
 
-    res.json(data.response.players[0]);
+    // Return all players instead of just the first one
+    res.json(data.response.players);
   } catch (error) {
-    console.error('Error fetching Steam profile:', error);
-    res.status(500).json({ error: 'Failed to fetch Steam profile' });
+    console.error('Error fetching Steam profiles:', error);
+    res.status(500).json({ error: 'Failed to fetch Steam profiles' });
   }
 });
 
