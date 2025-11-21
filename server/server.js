@@ -139,6 +139,34 @@ app.get('/api/deadlock/heroes', async (_req, res) => {
   }
 });
 
+// DeadLock Matchdata endpoint
+app.get('/api/matchData', async (req, res) => {
+  try {
+    // Combine all Steam IDs (you + your friends)
+    // const steamIds = [
+    //   process.env.DEADLOCK_ACCOUNT_ID
+    // ].filter(id => id).join(','); // Filter out undefined IDs and join with commas
+    
+    const url =`https://api.deadlock-api.com/v1/players/${process.env.DEADLOCK_ACCOUNT_ID}/match-history?only_stored_history=true`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error('Deadlock Match Data request failed');
+    }
+    console.log('Deadlock Match Data', data);
+    // Return only the first 5 matches
+    const limitedData = Array.isArray(data) ? data.slice(0, 5) : data;
+
+
+    
+
+    res.json(limitedData);
+  } catch (error) {
+    console.error('Error fetching Match Data:', error);
+    res.status(500).json({ error: 'Failed to fetch Match Data' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
 });
