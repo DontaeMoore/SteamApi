@@ -23,6 +23,9 @@ export default function SteamFriendsSection() {
   const [profileData, setProfileData] = useState(null);
   const [error, setError] = useState(null);
 
+  //New state
+  const [deadlockStatus, setDeadlockStatus] = useState('N/A');
+
   useEffect(() => {
     async function fetchSteamProfiles() {
       try {
@@ -39,8 +42,34 @@ export default function SteamFriendsSection() {
     fetchSteamProfiles();
   }, []);
 
+  useEffect(() => {
+    async function fetchDeadlockStatus() {
+      try {
+        console.log('in fetchDeadlockStatus useEffect');
+        const response = await fetch('http://localhost:3001/deadlock/status');
+        if (!response.ok) throw new Error('Deadlock Status request failed');
+        const health = await response.json();
+        console.log('Fetched Deadlock status:', health);
+        setDeadlockStatus(health);
+      } catch (err) {
+        console.error('Error fetching Deadlock Status:', err);
+        setError(err.message);
+      }
+    }
+    fetchDeadlockStatus();
+  }, []);
+
   return (
     <div className="section section--full-height">
+      <div className="status">
+      <div className="status-deadlock">Deadlock API STATUS: <a className="statusMessage">
+        {deadlockStatus ? (
+          deadlockStatus.services?.clickhouse && deadlockStatus.services?.postgres && deadlockStatus.services?.redis
+            ? 'Online' 
+            : 'Partial'
+        ) : 'N/A'}
+      </a></div>
+      </div>
       <div className="section__inner">
         <h1>Steam Friends</h1>
         <div id="steam-profiles">

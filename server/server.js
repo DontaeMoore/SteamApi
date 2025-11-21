@@ -23,8 +23,8 @@ app.get('/api/profile', async (req, res) => {
     // Combine all Steam IDs (you + your friends)
     const steamIds = [
       process.env.STEAM_ID,
-      process.env.FRIEND1_STEAM_ID,
-      process.env.FRIEND2_STEAM_ID
+      process.env.TIM_STEAM_ID,
+      process.env.ISAHIA_STEAM_ID
     ].filter(id => id).join(','); // Filter out undefined IDs and join with commas
     
     const url = `${STEAM_API_URL}?key=${process.env.STEAM_API_KEY}&steamids=${steamIds}`;
@@ -43,35 +43,50 @@ app.get('/api/profile', async (req, res) => {
   }
 });
 
-// ---- Deadlock API proxy (kept) ----
-function steam64ToAccountId(steam64) {
-  const base = 76561197960265728n;
+// Route to get status of Deadlock API
+app.get('/deadlock/status', async (req, res) => {
   try {
-    const n = BigInt(steam64);
-    const diff = n - base;
-    if (diff < 0n) return null;
-    return diff.toString();
-  } catch {
-    return null;
+    // we need no parameters
+    console.log('Fetching Deadlock status...');
+    
+    const url = 'https://api.deadlock-api.com/v1/info/health';
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error('Deadlock Api Call failed');
+    }
+
+    console.log('Deadlock status data:', data);
+    
+
+    // Return the whole JSON object
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching Deadlock status:', error);
+    res.status(500).json({ error: 'Failed to fetch Deadlock status' });
   }
-}
+});
+
 
 // GET /api/deadlock/hero-stats?account_id=133440116&hero_ids=... (optional extra filters)
 app.get('/api/deadlock/hero-stats', async (req, res) => {
   try {
     // Resolve account_id priority: query > DEADLOCK_ACCOUNT_ID > derived from STEAM_ID
-    let accountId = req.query.account_id || process.env.DEADLOCK_ACCOUNT_ID;
-    if (!accountId && process.env.STEAM_ID) {
-      const derived = steam64ToAccountId(process.env.STEAM_ID);
-      if (derived) accountId = derived;
-    }
-    if (!accountId) {
-      return res.status(400).json({ error: 'Missing account_id (query), DEADLOCK_ACCOUNT_ID, or convertible STEAM_ID' });
-    }
+    
+
+    const accountIds = [
+      process.env.DEADLOCK_ACCOUNT_ID,
+      process.env.TIM_DEADLOCK_ACCOUNT_ID,
+      process.env.ISAHIA_DEADLOCK_ACCOUNT_ID
+    ].filter(id => id).join(',');
+   
+
+   
 
     const baseUrl = 'https://api.deadlock-api.com/v1/players/hero-stats';
     const params = new URLSearchParams();
-    params.set('account_ids', String(accountId));
+    params.set('account_ids', accountIds);
 
     // Pass through known optional filters if provided and not literal 'null'
     const passThrough = ['hero_ids','min_unix_timestamp','max_unix_timestamp','min_duration_s','max_duration_s','min_networth','max_networth','min_average_badge','max_average_badge','min_match_id','max_match_id'];
@@ -85,6 +100,7 @@ app.get('/api/deadlock/hero-stats', async (req, res) => {
     const url = `${baseUrl}?${params.toString()}`;
     const r = await fetch(url);
     const text = await r.text();
+    // console.log('Deadlock API response text:', text);
     let data;
     try { data = JSON.parse(text); } catch (e) {
       console.error('Deadlock API non-JSON:', text);

@@ -104,6 +104,7 @@
   min-height: 70vh;
   display: flex;
   align-items: center;
+
   margin-bottom: 40px;
 }
 
@@ -112,4 +113,55 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem 1rem;
+}
+
+.status {
+  position: absolute;
+  top: 1rem;
+  left: 8rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.95rem;
+  font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+  color: #66c0f4;
+  pointer-events: none;
+}
+
+.status > div {
+  background: rgba(30, 35, 40, 0.9);
+  border: 1px solid rgba(102, 192, 244, 0.3);
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+}
+
+.statusMessage {
+  color: salmon;
+}
+
+/* Center headings inside stat/profile cards */
+.steam-profile h3 {
+  text-align: center;
+}
+
+.statsProfile {
+  background: #1e2328;
+  border-radius: 10px;
+  padding: 1rem;
+  min-width: 500px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+/* Steam profiles styling */
+.stats-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
 }

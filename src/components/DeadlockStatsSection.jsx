@@ -58,45 +58,82 @@ export default function DeadlockStatsSection() {
     fetchHeroStats();
   }, []);
 
-  // Sorting helpers
-  const getMatches = (e) => (e?.matches_played ?? e?.matches ?? 0);
-  const sortedHeroStats = Array.isArray(heroStats)
-    ? [...heroStats].sort((a, b) => getMatches(b) - getMatches(a))
-    : null;
+  // Sorting + grouping helpers (use matches_played only)
+  const getMatches = (e) => (e?.matches_played ?? 0);
+
+  // Friendly account labels (update if needed)
+  const ACCOUNT_NAMES = {
+    '133440116': 'LoGic',
+    '222305299': 'Pie',
+    '111338096': 'uomeakill',
+  };
+  const ORDER = ['133440116', '222305299', '111338096'];
+
+  const grouped = React.useMemo(() => {
+    if (!Array.isArray(heroStats)) return null;
+    const acc = {};
+    for (const row of heroStats) {
+      const id = String(row.account_id ?? 'unknown');
+      (acc[id] = acc[id] || []).push(row);
+    }
+    // sort each group by matches desc
+    for (const id of Object.keys(acc)) {
+      acc[id].sort((a, b) => getMatches(b) - getMatches(a));
+    }
+    return acc;
+  }, [heroStats]);
 
   return (
     <div className="section section--full-height">
       <div className="section__inner">
         <h1>Deadlock Stats.</h1>
-        <h2>Your Hero Stats</h2>
+        <h2>Hero Stats by Account</h2>
         {heroError ? (
           <p className="error">{heroError}</p>
         ) : heroLoading ? (
           <p>Loading hero stats...</p>
         ) : heroStats ? (
           <div>
-            {Array.isArray(heroStats) ? (
+            {Array.isArray(heroStats) && grouped ? (
               <>
-                <p>Total heroes in response: {heroStats.length}</p>
-                <ul style={{ textAlign: 'left', maxHeight: 240, overflow: 'auto', margin: '0 auto' }}>
-                  {sortedHeroStats.map((entry, i) => (
-                    <li key={entry.hero_id ?? i}>
-                      {entry.hero_id !== undefined ? (
-                        <>
-                          <strong>{heroMap[String(entry.hero_id)] || 'Hero'}</strong>{' '}
-                          {(entry.matches_played !== undefined || entry.matches !== undefined) && (
-                            <span> — matches: {getMatches(entry)}</span>
-                          )}
-                          {entry.wins !== undefined && (
-                            <span> — wins: {entry.wins}</span>
-                          )}
-                        </>
-                      ) : (
-                        <code>{JSON.stringify(entry)}</code>
-                      )}
-                    </li>
+                <p>Total rows: {heroStats.length}</p>
+                <div className="stats-container">
+                  {[
+                    ...ORDER.filter((id) => grouped[id]),
+                    ...Object.keys(grouped).filter((id) => !ORDER.includes(id)),
+                  ].map((accountId) => (
+                    <div key={accountId} className="statsProfile">
+                      <h3>
+                        {ACCOUNT_NAMES[accountId] || accountId} {' '}
+                        {grouped[accountId].length} Unique Heroes
+                        
+                      </h3>
+
+                      <div style={{ textAlign: 'center', overflow: 'auto', margin: 0 }}>
+                        {grouped[accountId].map((entry, i) => (
+                          <li key={`${accountId}-${entry.hero_id ?? i}`}>
+                            {entry.hero_id !== undefined ? (
+                              <>
+                                <strong>{heroMap[String(entry.hero_id)] || 'Hero'}</strong>{' '}
+                                {entry.matches_played != null && (
+                                  <span> — games: {entry.matches_played}</span>
+                                )}
+                                {entry.wins !== undefined && (
+                                  <span> — wins: {entry.wins}</span>
+                                )}
+                                {entry.matches_played !== undefined && entry.wins !== undefined && (
+                                  <span> — wr: {((entry.wins / entry.matches_played) * 100).toFixed(0)}%</span>
+                                )}
+                              </>
+                            ) : (
+                              <code>{JSON.stringify(entry)}</code>
+                            )}
+                          </li>
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </>
             ) : (
               <pre style={{ textAlign: 'left' }}>{JSON.stringify(heroStats, null, 2)}</pre>
