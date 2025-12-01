@@ -153,17 +153,119 @@ app.get('/api/matchData', async (req, res) => {
     if (!response.ok) {
       throw new Error('Deadlock Match Data request failed');
     }
-    console.log('Deadlock Match Data', data);
+    // console.log('Deadlock Match Data', data);
     // Return only the first 5 matches
     const limitedData = Array.isArray(data) ? data.slice(0, 5) : data;
 
 
     
 
-    res.json(limitedData);
+    res.json(data);
   } catch (error) {
     console.error('Error fetching Match Data:', error);
     res.status(500).json({ error: 'Failed to fetch Match Data' });
+  }
+});
+
+// Endpoint to get average deaths comparison for all 3 players
+app.get('/api/averageDeaths', async (req, res) => {
+  try {
+    const players = [
+      { name: 'LoGiC', accountId: process.env.DEADLOCK_ACCOUNT_ID },
+      { name: 'Pie', accountId: process.env.TIM_DEADLOCK_ACCOUNT_ID },
+      { name: 'uomeakill', accountId: process.env.ISAHIA_DEADLOCK_ACCOUNT_ID }
+    ];
+
+    const playerStats = [];
+
+    for (const player of players) {
+      try {
+        const url = `https://api.deadlock-api.com/v1/players/${player.accountId}/match-history?only_stored_history=true`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          console.warn(`Failed to fetch data for ${player.name}`);
+          playerStats.push({ name: player.name, averageDeaths: 0 });
+          continue;
+        }
+
+        const data = await response.json();
+        
+        if (Array.isArray(data) && data.length > 0) {
+          // Calculate average deaths from all available matches
+          const totalDeaths = data.reduce((sum, match) => sum + (match.player_deaths || 0), 0);
+          const averageDeaths = totalDeaths / data.length;
+          
+          playerStats.push({ 
+            name: player.name, 
+            averageDeaths: Math.round(averageDeaths * 100) / 100 // Round to 2 decimals
+          });
+        } else {
+          playerStats.push({ name: player.name, averageDeaths: 0 });
+        }
+      } catch (playerError) {
+        console.warn(`Error fetching data for ${player.name}:`, playerError);
+        playerStats.push({ name: player.name, averageDeaths: 0 });
+      }
+    }
+
+    res.json(playerStats);
+  } catch (error) {
+    console.error('Error fetching average deaths comparison:', error);
+    res.status(500).json({ error: 'Failed to fetch average deaths comparison' });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend server running on http://localhost:${PORT}`);
+});
+
+// Endpoint to get average souls comparison for all 3 players
+app.get('/api/averageSouls', async (req, res) => {
+  try {
+    const players = [
+      { name: 'LoGiC', accountId: process.env.DEADLOCK_ACCOUNT_ID },
+      { name: 'Pie', accountId: process.env.TIM_DEADLOCK_ACCOUNT_ID },
+      { name: 'uomeakill', accountId: process.env.ISAHIA_DEADLOCK_ACCOUNT_ID }
+    ];
+
+    const playerStats = [];
+
+    for (const player of players) {
+      try {
+        const url = `https://api.deadlock-api.com/v1/players/${player.accountId}/match-history?only_stored_history=true`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          console.warn(`Failed to fetch data for ${player.name}`);
+          playerStats.push({ name: player.name, averageDeaths: 0 });
+          continue;
+        }
+
+        const data = await response.json();
+        
+        if (Array.isArray(data) && data.length > 0) {
+          // Calculate average souls from all available matches
+          const netWorth = data.reduce((sum, match) => sum + (match.net_worth || 0), 0);
+          const averageSouls = netWorth / data.length;
+          
+          playerStats.push({ 
+            name: player.name, 
+            averageSouls: Math.round(averageSouls * 100) / 100 // Round to 2 decimals
+          });
+        } else {
+          playerStats.push({ name: player.name, averageSouls: 0 });
+        }
+      } catch (playerError) {
+        console.warn(`Error fetching data for ${player.name}:`, playerError);
+        playerStats.push({ name: player.name, averageSouls: 0 });
+      }
+    }
+
+    res.json(playerStats);
+    } catch (error) {
+      console.error('Error fetching average souls comparison:', error);
+    res.status(500).json({ error: 'Failed to fetch average souls comparison' });
   }
 });
 

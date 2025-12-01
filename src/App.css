@@ -169,4 +169,10 @@
 .chartBackground{
 background-color: #1e2328;
 }
+.chartContainer{
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap:wrap;
+}
 
